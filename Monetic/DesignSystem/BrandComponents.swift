@@ -88,12 +88,13 @@ extension View {
 /// gradient appears — keeping it rare is what makes it read as a signature.
 struct GradientButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        Body(configuration: configuration)
+        GradientBody(configuration: configuration)
     }
 
     // `@Environment` is only installed on a View, never on the style itself,
-    // so the label is wrapped in one to read `isEnabled` correctly.
-    private struct Body: View {
+    // so the label is wrapped in one to read `isEnabled` correctly. The name
+    // avoids `Body`, which ButtonStyle already declares as an associated type.
+    private struct GradientBody: View {
         let configuration: ButtonStyleConfiguration
         @Environment(\.isEnabled) private var isEnabled
 
@@ -119,10 +120,10 @@ struct GradientButtonStyle: ButtonStyle {
 /// Secondary action: same shape, no gradient.
 struct SoftButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        Body(configuration: configuration)
+        SoftBody(configuration: configuration)
     }
 
-    private struct Body: View {
+    private struct SoftBody: View {
         let configuration: ButtonStyleConfiguration
         @Environment(\.isEnabled) private var isEnabled
 
