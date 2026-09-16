@@ -6,15 +6,15 @@ struct OnboardingView: View {
     @Binding var hasCompletedOnboarding: Bool
 
     private let defaultCategories: [(name: String, icon: String, color: String)] = [
-        ("Food & Dining",  "🍔", "orange"),
-        ("Entertainment",  "🎉", "purple"),
-        ("Transport",      "🚗", "green"),
-        ("Shopping",       "🛒", "pink"),
-        ("Bills & Fees",   "📋", "red"),
-        ("Health",         "💪", "blue"),
-        ("Subscriptions",  "📱", "teal"),
+        ("Food & Dining",  "🍔", "amber"),
+        ("Entertainment",  "🎉", "violet"),
+        ("Transport",      "🚗", "mint"),
+        ("Shopping",       "🛒", "rose"),
+        ("Bills & Fees",   "📋", "coral"),
+        ("Health",         "💪", "azure"),
+        ("Subscriptions",  "📱", "cyan"),
         ("Travel",         "🧳", "indigo"),
-        ("Work",           "💼", "blue"),
+        ("Work",           "💼", "magenta"),
     ]
 
     @State private var selected: Set<String> = [
@@ -22,58 +22,118 @@ struct OnboardingView: View {
     ]
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                // Header
-                VStack(spacing: 10) {
-                    Text("👋")
-                        .font(.system(size: 56))
-                    Text("Welcome to Monetic")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                    Text("Choose which groups to start with.\nYou can add or remove more later.")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                .padding(.top, 48)
-                .padding(.bottom, 24)
-                .padding(.horizontal, 32)
+        ZStack {
+            BrandBackground()
 
-                // Category list
-                List {
-                    ForEach(defaultCategories, id: \.name) { cat in
-                        Button(action: { toggle(cat.name) }) {
-                            HStack(spacing: 14) {
-                                Text(cat.icon)
-                                    .font(.system(size: 28))
-                                    .frame(width: 36)
-                                Text(cat.name)
-                                    .font(.body)
-                                    .foregroundColor(.primary)
-                                Spacer()
-                                Image(systemName: selected.contains(cat.name) ? "checkmark.circle.fill" : "circle")
-                                    .font(.title3)
-                                    .foregroundColor(selected.contains(cat.name) ? .accentColor : Color(.tertiaryLabel))
-                            }
-                            .padding(.vertical, 2)
+            VStack(spacing: 0) {
+                header
+
+                ScrollView {
+                    VStack(spacing: 9) {
+                        ForEach(defaultCategories, id: \.name) { cat in
+                            categoryRow(cat)
                         }
                     }
+                    .padding(.horizontal, Brand.Space.gutter)
+                    .padding(.bottom, 16)
                 }
-                .listStyle(.insetGrouped)
+                .scrollIndicators(.hidden)
 
-                // CTA button
-                Button(action: saveAndContinue) {
-                    Text(selected.isEmpty ? "Skip for Now" : "Get Started")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                }
-                .buttonStyle(.borderedProminent)
-                .padding()
+                footer
             }
-            .navigationBarHidden(true)
         }
+    }
+
+    // MARK: Header
+
+    private var header: some View {
+        VStack(spacing: 14) {
+            BrandLogoMark(size: 72)
+
+            VStack(spacing: 7) {
+                MoneticWordmark(size: 19)
+
+                Text("Pick the groups you want to start with.\nYou can change these any time.")
+                    .font(.subheadline)
+                    .foregroundStyle(Brand.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(2)
+            }
+        }
+        .padding(.top, 54)
+        .padding(.bottom, 26)
+        .padding(.horizontal, 32)
+    }
+
+    // MARK: Rows
+
+    private func categoryRow(_ cat: (name: String, icon: String, color: String)) -> some View {
+        let isSelected = selected.contains(cat.name)
+        let hue = CategoryPalette.color(for: cat.color)
+
+        return Button(action: { toggle(cat.name) }) {
+            HStack(spacing: 13) {
+                CategoryTile(icon: cat.icon, colorKey: cat.color, size: 40)
+
+                Text(cat.name)
+                    .font(Brand.display(15, .medium))
+                    .foregroundStyle(Brand.textPrimary)
+
+                Spacer()
+
+                ZStack {
+                    Circle()
+                        .strokeBorder(isSelected ? Color.clear : Brand.hairline, lineWidth: 1.5)
+                        .frame(width: 22, height: 22)
+
+                    if isSelected {
+                        Circle()
+                            .fill(Brand.gradientDiagonal)
+                            .frame(width: 22, height: 22)
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .background(
+                RoundedRectangle(cornerRadius: Brand.Radius.row, style: .continuous)
+                    .fill(Brand.surface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Brand.Radius.row, style: .continuous)
+                    .strokeBorder(isSelected ? hue.opacity(0.4) : Brand.hairline, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .animation(.easeOut(duration: 0.15), value: isSelected)
+    }
+
+    // MARK: Footer
+
+    private var footer: some View {
+        VStack(spacing: 10) {
+            Button(action: saveAndContinue) {
+                Text(selected.isEmpty ? "Skip for Now" : "Get Started")
+            }
+            .buttonStyle(GradientButtonStyle())
+
+            Text(selected.isEmpty
+                 ? "You can add groups whenever you're ready."
+                 : "\(selected.count) group\(selected.count == 1 ? "" : "s") selected")
+                .font(.caption)
+                .foregroundStyle(Brand.textTertiary)
+        }
+        .padding(.horizontal, Brand.Space.gutter)
+        .padding(.top, 14)
+        .padding(.bottom, 8)
+        .background(
+            // Keeps the CTA readable when rows scroll underneath it.
+            Brand.background.opacity(0.94)
+                .ignoresSafeArea(edges: .bottom)
+        )
     }
 
     private func toggle(_ name: String) {

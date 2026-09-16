@@ -18,78 +18,72 @@ struct SetBudgetView: View {
         AmountInput.parse(input) ?? 0
     }
 
+    private var isEmpty: Bool { input.isEmpty }
+
     var body: some View {
         NavigationStack {
-            VStack(spacing: 32) {
-                Spacer()
+            ZStack {
+                BrandBackground()
 
-                VStack(spacing: 8) {
-                    Text(isNewMonthPrompt ? "New Month" : "Monthly Budget")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                    Text(isNewMonthPrompt
-                         ? "Set your budget for \(currentMonthName)"
-                         : "How much do you plan to spend in \(currentMonthName)?")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                }
+                VStack(spacing: 28) {
+                    Spacer(minLength: 12)
 
-                // Large currency display
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text(Currency.symbol)
-                        .font(.system(size: 40, weight: .light))
-                        .foregroundColor(.secondary)
-                    Text(input.isEmpty ? "0" : input)
-                        .font(.system(size: 64, weight: .bold, design: .rounded))
-                        .minimumScaleFactor(0.4)
-                        .lineLimit(1)
-                }
-                .onTapGesture { isFocused = true }
+                    VStack(spacing: 9) {
+                        Text(isNewMonthPrompt ? "New Month" : "Monthly Budget")
+                            .font(Brand.display(24, .bold))
+                            .foregroundStyle(Brand.textPrimary)
 
-                // Hidden text field
-                TextField("", text: $input)
-                    .keyboardType(.decimalPad)
-                    .focused($isFocused)
-                    .frame(width: 1, height: 1)
-                    .opacity(0.01)
-                    .onChange(of: input) { _, newValue in
-                        input = AmountInput.sanitize(newValue)
+                        Text(isNewMonthPrompt
+                             ? "Set your budget for \(currentMonthName)."
+                             : "How much do you plan to spend in \(currentMonthName)?")
+                            .font(.subheadline)
+                            .foregroundStyle(Brand.textSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 28)
                     }
 
-                Spacer()
+                    amountDisplay
 
-                VStack(spacing: 12) {
-                    Button(action: save) {
-                        Text("Save Budget")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(parsedAmount <= 0)
+                    // Hidden field — the big number above is the visible target.
+                    TextField("", text: $input)
+                        .keyboardType(.decimalPad)
+                        .focused($isFocused)
+                        .frame(width: 1, height: 1)
+                        .opacity(0.01)
+                        .onChange(of: input) { _, newValue in
+                            input = AmountInput.sanitize(newValue)
+                        }
 
-                    // The new-month prompt has no Cancel, so it always needs one
-                    // other way out — otherwise a user with no previous budget
-                    // is stuck here on first launch.
-                    if isNewMonthPrompt {
-                        Button(action: keepSame) {
-                            Text(monthlyBudget > 0 ? "Keep Last Month's Budget" : "Skip for Now")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
+                    Spacer()
+
+                    VStack(spacing: 12) {
+                        Button("Save Budget", action: save)
+                            .buttonStyle(GradientButtonStyle())
+                            .disabled(parsedAmount <= 0)
+
+                        // The new-month prompt has no Cancel, so it always needs one
+                        // other way out — otherwise a user with no previous budget
+                        // is stuck here on first launch.
+                        if isNewMonthPrompt {
+                            Button(action: keepSame) {
+                                Text(monthlyBudget > 0 ? "Keep Last Month's Budget" : "Skip for Now")
+                            }
+                            .buttonStyle(SoftButtonStyle())
                         }
                     }
+                    .padding(.horizontal, Brand.Space.gutter)
+                    .padding(.bottom, 10)
                 }
-                .padding(.horizontal)
-                .padding(.bottom)
             }
-            .navigationTitle(currentMonthName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text(currentMonthName).brandEyebrow()
+                }
                 if !isNewMonthPrompt {
                     ToolbarItem(placement: .topBarLeading) {
                         Button("Cancel") { dismiss() }
+                            .foregroundStyle(Brand.textSecondary)
                     }
                 }
             }
@@ -100,6 +94,26 @@ struct SetBudgetView: View {
                 isFocused = true
             }
         }
+        .tint(Brand.accent)
+    }
+
+    /// The one screen in the app that's mostly a single number, so it gets the
+    /// full gradient treatment.
+    private var amountDisplay: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 5) {
+            Text(Currency.symbol)
+                .font(Brand.number(34, .medium))
+                .foregroundStyle(isEmpty ? Brand.textTertiary : Brand.textSecondary)
+
+            Text(isEmpty ? "0" : input)
+                .font(Brand.number(64))
+                .foregroundStyle(isEmpty ? AnyShapeStyle(Brand.textTertiary) : AnyShapeStyle(Brand.gradient))
+                .minimumScaleFactor(0.4)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 24)
+        .contentShape(Rectangle())
+        .onTapGesture { isFocused = true }
     }
 
     private func save() {

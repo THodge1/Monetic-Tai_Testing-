@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import Charts
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
@@ -27,112 +26,113 @@ struct ContentView: View {
         monthlyBudget - totalSpentThisMonth
     }
 
-    private var spendingPercentage: Double {
+    /// Unclamped on purpose — the ring needs to know it has been *passed*, not
+    /// just that it's full.
+    private var spendRatio: Double {
         guard monthlyBudget > 0 else { return 0 }
-        return min(totalSpentThisMonth / monthlyBudget, 1.0)
+        return totalSpentThisMonth / monthlyBudget
+    }
+
+    private var hasSpending: Bool {
+        categories.contains { $0.monthlySpending() > 0 }
     }
 
     var body: some View {
         NavigationStack {
-            List {
-                // Budget Summary Card
-                BudgetSummaryCard(
-                    monthlyBudget: monthlyBudget,
-                    totalSpent: totalSpentThisMonth,
-                    remaining: remaining,
-                    percentage: spendingPercentage,
-                    onSetBudget: {
-                        isNewMonthPrompt = false
-                        showingSetBudget = true
-                    }
-                )
-                .listRowBackground(Color(.systemGroupedBackground))
-                .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 16, leading: 16, bottom: 8, trailing: 16))
+            ZStack {
+                BrandBackground()
 
-                // Charts Section
-                if !categories.isEmpty && categories.contains(where: { $0.monthlySpending() > 0 }) {
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.25)) { chartsExpanded.toggle() }
-                    }) {
-                        HStack {
-                            Text("Spending Overview")
-                                .font(.title3).fontWeight(.semibold).foregroundColor(.primary)
-                            Spacer()
-                            Image(systemName: "chevron.down")
-                                .font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
-                                .rotationEffect(.degrees(chartsExpanded ? 0 : -90))
-                        }
-                    }
-                    .listRowBackground(Color(.systemGroupedBackground))
-                    .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 4, trailing: 16))
-
-                    if chartsExpanded {
-                        SpendingChartsView(categories: categories)
-                            .listRowBackground(Color(.systemGroupedBackground))
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 8, trailing: 16))
-                            .transition(.opacity.combined(with: .move(edge: .top)))
-                    }
-                }
-
-                // Groups header
-                HStack {
-                    Text("Groups").font(.title3).fontWeight(.semibold)
-                    Spacer()
-                    Button(action: { showingAddCategory = true }) {
-                        Label("Add Group", systemImage: "plus.circle.fill").font(.subheadline)
-                    }
-                }
-                .listRowBackground(Color(.systemGroupedBackground))
-                .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 4, trailing: 16))
-
-                // Groups
-                if categories.isEmpty {
-                    ContentUnavailableView(
-                        "No Groups Yet",
-                        systemImage: "tray",
-                        description: Text("Add a group to start organizing your expenses")
-                    )
-                    .listRowBackground(Color(.systemGroupedBackground))
-                    .listRowSeparator(.hidden)
-                } else {
-                    ForEach(categories) { category in
-                        GroupRow(category: category)
-                            .onTapGesture { selectedCategory = category }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    deleteCategory(category)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
+                List {
+                    Group {
+                        BudgetHeroCard(
+                            monthlyBudget: monthlyBudget,
+                            totalSpent: totalSpentThisMonth,
+                            remaining: remaining,
+                            ratio: spendRatio,
+                            onSetBudget: {
+                                isNewMonthPrompt = false
+                                showingSetBudget = true
                             }
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+                        )
+                        .padding(.top, 4)
+                        .padding(.bottom, 10)
+
+                        if hasSpending {
+                            chartsSection
+                        }
+
+                        BrandSectionHeader(title: "Groups") {
+                            Button(action: { showingAddCategory = true }) {
+                                HStack(spacing: 5) {
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 11, weight: .bold))
+                                    Text("Add")
+                                        .font(Brand.display(13, .semibold))
+                                }
+                                .foregroundStyle(Brand.accent)
+                                .padding(.horizontal, 11)
+                                .padding(.vertical, 6)
+                                .background(
+                                    Capsule().fill(Brand.accent.opacity(0.14))
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.top, 14)
+                        .padding(.bottom, 6)
                     }
-                    .onMove(perform: reorderCategories)
+                    .brandListRow()
+
+                    if categories.isEmpty {
+                        NoGroupsCard(onAdd: { showingAddCategory = true })
+                            .brandListRow()
+                    } else {
+                        ForEach(categories) { category in
+                            GroupCard(category: category)
+                                .contentShape(Rectangle())
+                                .onTapGesture { selectedCategory = category }
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        deleteCategory(category)
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
+                                .brandListRow(vertical: 5)
+                        }
+                        .onMove(perform: reorderCategories)
+                    }
+
+                    Color.clear
+                        .frame(height: 24)
+                        .brandListRow(vertical: 0)
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .environment(\.defaultMinListRowHeight, 0)
             }
-            .listStyle(.plain)
-            .background(Color(.systemGroupedBackground))
-            .scrollContentBackground(.hidden)
-            .navigationTitle("My Budget")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    MoneticWordmark()
+                }
                 ToolbarItem(placement: .topBarLeading) {
                     Button(action: { showingSettings = true }) {
-                        Image(systemName: "gearshape").foregroundColor(.secondary)
+                        Image(systemName: "gearshape")
+                            .foregroundStyle(Brand.textSecondary)
                     }
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     EditButton()
+                        .font(Brand.display(15, .medium))
                     Button(action: { showingAddTransaction = true }) {
-                        Image(systemName: "plus")
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundStyle(Brand.accent)
                     }
                 }
             }
+            .tint(Brand.accent)
             .sheet(isPresented: $showingSetBudget) {
                 SetBudgetView(
                     monthlyBudget: $monthlyBudget,
@@ -171,6 +171,28 @@ struct ContentView: View {
         }
     }
 
+    @ViewBuilder
+    private var chartsSection: some View {
+        Button(action: {
+            withAnimation(.easeInOut(duration: 0.25)) { chartsExpanded.toggle() }
+        }) {
+            BrandSectionHeader(title: "Spending Overview") {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(Brand.textSecondary)
+                    .rotationEffect(.degrees(chartsExpanded ? 0 : -90))
+            }
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 10)
+        .padding(.bottom, 8)
+
+        if chartsExpanded {
+            SpendingChartsView(categories: categories)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+        }
+    }
+
     private func deleteCategory(_ category: BudgetCategory) {
         modelContext.delete(category)
         try? modelContext.save()
@@ -198,190 +220,216 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Budget Summary Card
-struct BudgetSummaryCard: View {
+// MARK: - List row styling
+/// The home screen is a `List` so that swipe-to-delete and drag-to-reorder keep
+/// working; these modifiers strip the stock chrome so it doesn't look like one.
+private extension View {
+    func brandListRow(vertical: CGFloat = 0) -> some View {
+        self
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(
+                top: vertical,
+                leading: Brand.Space.gutter,
+                bottom: vertical,
+                trailing: Brand.Space.gutter
+            ))
+    }
+}
+
+// MARK: - Budget Hero
+
+struct BudgetHeroCard: View {
     let monthlyBudget: Double
     let totalSpent: Double
     let remaining: Double
-    let percentage: Double
+    let ratio: Double
     let onSetBudget: () -> Void
 
-    private var progressColor: Color {
-        if percentage >= 1.0 { return .red }
-        if percentage >= 0.8 { return .orange }
-        return .green
-    }
+    private var isOver: Bool { remaining < 0 }
 
     var body: some View {
-        VStack(spacing: 16) {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Monthly Budget")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .textCase(.uppercase)
-                    if monthlyBudget > 0 {
-                        Text(monthlyBudget, format: .currency(code: Currency.code))
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                    } else {
-                        Button(action: onSetBudget) {
-                            Text("Tap to set budget")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                        }
-                    }
-                }
+        VStack(spacing: 20) {
+            HStack {
+                Text(MonthKey.displayName()).brandEyebrow()
                 Spacer()
-                Button(action: onSetBudget) {
-                    Image(systemName: "pencil.circle.fill")
-                        .font(.title2)
-                        .foregroundColor(.secondary)
+                if monthlyBudget > 0 {
+                    Button(action: onSetBudget) {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Brand.textSecondary)
+                            .frame(width: 30, height: 30)
+                            .background(Circle().fill(Brand.track))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Edit monthly budget")
                 }
             }
 
             if monthlyBudget > 0 {
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(Color.gray.opacity(0.2))
-                            .frame(height: 10)
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(progressColor)
-                            .frame(width: max(geo.size.width * percentage, percentage > 0 ? 4 : 0), height: 10)
-                    }
-                }
-                .frame(height: 10)
-
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Spent")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text(totalSpent, format: .currency(code: Currency.code))
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                    }
-                    Spacer()
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text(remaining >= 0 ? "Remaining" : "Over Budget")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text(abs(remaining), format: .currency(code: Currency.code))
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(remaining < 0 ? .red : .primary)
-                    }
-                }
-            }
-        }
-        .padding()
-        .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(16)
-    }
-}
-
-// MARK: - Category Icon
-/// Displays either an emoji or falls back to an SF Symbol for legacy data.
-struct CategoryIcon: View {
-    let icon: String
-    let color: String
-    let size: CGFloat
-    let frame: CGFloat
-
-    var body: some View {
-        Group {
-            if icon.isEmojiIcon {
-                Text(icon)
-                    .font(.system(size: size))
+                ring
+                statsRow
             } else {
-                Image(systemName: icon)
-                    .font(.system(size: size * 0.7))
-                    .foregroundColor(Color(color))
+                emptyBudgetPrompt
             }
         }
-        .frame(width: frame, height: frame)
-        .background(Color(color).opacity(0.15))
+        .brandCard(padding: 20)
+    }
+
+    private var ring: some View {
+        BudgetRing(percentage: ratio, lineWidth: 15) {
+            VStack(spacing: 3) {
+                Text(isOver ? "Over by" : "Remaining").brandEyebrow()
+
+                Text(abs(remaining), format: .currency(code: Currency.code))
+                    .font(Brand.number(34))
+                    .foregroundStyle(isOver ? Brand.danger : Brand.textPrimary)
+                    .minimumScaleFactor(0.5)
+                    .lineLimit(1)
+                    .padding(.horizontal, 12)
+
+                Text("\(Int((ratio * 100).rounded()))% used")
+                    .font(Brand.display(12, .medium))
+                    .foregroundStyle(Brand.textTertiary)
+            }
+        }
+        .frame(width: 196, height: 196)
+        .padding(.vertical, 2)
+    }
+
+    private var statsRow: some View {
+        HStack(spacing: 0) {
+            stat(label: "Spent", value: totalSpent, tint: Brand.textPrimary)
+
+            Rectangle()
+                .fill(Brand.hairline)
+                .frame(width: 1, height: 30)
+
+            stat(label: "Budget", value: monthlyBudget, tint: Brand.textPrimary)
+        }
+    }
+
+    private func stat(label: String, value: Double, tint: Color) -> some View {
+        VStack(spacing: 4) {
+            Text(label).brandEyebrow()
+            Text(value, format: .currency(code: Currency.code))
+                .font(Brand.number(17, .semibold))
+                .foregroundStyle(tint)
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var emptyBudgetPrompt: some View {
+        VStack(spacing: 14) {
+            Text("No budget set")
+                .font(Brand.display(21, .bold))
+                .foregroundStyle(Brand.textPrimary)
+
+            Text("Give yourself a number to spend against this month.")
+                .font(.subheadline)
+                .foregroundStyle(Brand.textSecondary)
+                .multilineTextAlignment(.center)
+
+            Button("Set Monthly Budget", action: onSetBudget)
+                .buttonStyle(GradientButtonStyle())
+                .padding(.top, 2)
+        }
+        .padding(.vertical, 8)
     }
 }
 
-// MARK: - Group Row
-struct GroupRow: View {
+// MARK: - Group Card
+
+struct GroupCard: View {
     let category: BudgetCategory
 
     private var spent: Double { category.monthlySpending() }
     private var hasLimit: Bool { category.monthlyBudget > 0 }
     private var isOver: Bool { category.isOverBudget() }
-
-    private var amountColor: Color {
-        if isOver { return .red }
-        return spent > 0 ? .primary : .secondary
-    }
+    private var hue: Color { CategoryPalette.color(for: category.color) }
 
     var body: some View {
-        HStack(spacing: 12) {
-            // Emoji or SF Symbol — no background box
-            Group {
-                if category.icon.isEmojiIcon {
-                    Text(category.icon)
-                        .font(.system(size: 28))
-                } else {
-                    Image(systemName: category.icon)
-                        .font(.system(size: 22))
-                        .foregroundColor(Color(category.color))
-                }
-            }
-            .frame(width: 32, alignment: .leading)
+        HStack(spacing: 13) {
+            CategoryTile(icon: category.icon, colorKey: category.color)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 5) {
                 Text(category.name)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                    .font(Brand.display(15, .semibold))
+                    .foregroundStyle(Brand.textPrimary)
+                    .lineLimit(1)
 
                 if hasLimit {
-                    Text("of \(category.monthlyBudget, format: .currency(code: Currency.code)) this month")
+                    Text("of \(category.monthlyBudget, format: .currency(code: Currency.code))")
                         .font(.caption)
-                        .foregroundColor(isOver ? .red : .secondary)
+                        .foregroundStyle(isOver ? Brand.danger : Brand.textTertiary)
 
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            Capsule()
-                                .fill(Color.gray.opacity(0.2))
-                            Capsule()
-                                .fill(isOver ? Color.red : Color.accentColor)
-                                .frame(width: progressWidth(in: geo.size.width))
-                        }
-                    }
-                    .frame(height: 4)
+                    BrandProgressBar(
+                        percentage: category.monthlySpendingPercentage(),
+                        tint: isOver ? Brand.danger : hue
+                    )
+                    .padding(.top, 1)
                 } else {
                     Text("\(category.transactions.count) expense\(category.transactions.count == 1 ? "" : "s")")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(Brand.textTertiary)
                 }
             }
 
-            Spacer()
+            Spacer(minLength: 8)
 
             Text(spent, format: .currency(code: Currency.code))
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundColor(amountColor)
+                .font(Brand.number(16, .semibold))
+                .foregroundStyle(isOver ? Brand.danger : (spent > 0 ? Brand.textPrimary : Brand.textTertiary))
 
             Image(systemName: "chevron.right")
-                .font(.caption2)
-                .foregroundColor(Color(.tertiaryLabel))
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Brand.textTertiary)
         }
-        .padding(.vertical, 12)
-        .padding(.leading, 6)
-        .padding(.trailing, 14)
-        .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(12)
+        .padding(.vertical, 13)
+        .padding(.horizontal, 14)
+        .background(
+            RoundedRectangle(cornerRadius: Brand.Radius.row, style: .continuous)
+                .fill(Brand.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Brand.Radius.row, style: .continuous)
+                .strokeBorder(isOver ? Brand.danger.opacity(0.35) : Brand.hairline, lineWidth: 1)
+        )
     }
+}
 
-    /// Keeps a sliver visible for small amounts so the bar never reads as empty.
-    private func progressWidth(in available: CGFloat) -> CGFloat {
-        let percentage = min(category.monthlySpendingPercentage(), 1.0)
-        guard percentage > 0 else { return 0 }
-        return max(available * percentage, 3)
+// MARK: - Empty state
+
+struct NoGroupsCard: View {
+    let onAdd: () -> Void
+
+    var body: some View {
+        VStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Brand.accent.opacity(0.12))
+                .frame(width: 54, height: 54)
+                .overlay(
+                    Image(systemName: "square.grid.2x2")
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundStyle(Brand.accent)
+                )
+
+            Text("No groups yet")
+                .font(Brand.display(17, .semibold))
+                .foregroundStyle(Brand.textPrimary)
+
+            Text("Groups are how Monetic sorts your spending — food, rent, fun money.")
+                .font(.subheadline)
+                .foregroundStyle(Brand.textSecondary)
+                .multilineTextAlignment(.center)
+
+            Button("Add Your First Group", action: onAdd)
+                .buttonStyle(GradientButtonStyle())
+                .padding(.top, 4)
+        }
+        .frame(maxWidth: .infinity)
+        .brandCard(padding: 22)
     }
 }

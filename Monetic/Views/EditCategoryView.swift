@@ -22,79 +22,71 @@ struct EditCategoryView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                VStack(spacing: 24) {
-                    // Emoji preview
-                    Button(action: { showingEmojiPicker = true }) {
-                        VStack(spacing: 8) {
-                            Text(selectedEmoji)
-                                .font(.system(size: 72))
-                                .frame(width: 120, height: 120)
-                                .background(Color(.secondarySystemGroupedBackground))
-                                .cornerRadius(28)
-                            Text("Tap to change emoji")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding(.top, 32)
+            ZStack {
+                BrandBackground()
 
-                    // Name field
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Group Name")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .textCase(.uppercase)
-                            .padding(.horizontal, 4)
+                ScrollView {
+                    VStack(spacing: 24) {
+                        Button(action: { showingEmojiPicker = true }) {
+                            VStack(spacing: 10) {
+                                CategoryTile(icon: selectedEmoji, colorKey: category.color, size: 108)
 
-                        TextField("Group name", text: $name)
-                            .padding()
-                            .background(Color(.secondarySystemGroupedBackground))
-                            .cornerRadius(12)
-                    }
-                    .padding(.horizontal)
-
-                    // Monthly limit
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Monthly Limit")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .textCase(.uppercase)
-                            .padding(.horizontal, 4)
-
-                        HStack(alignment: .firstTextBaseline, spacing: 4) {
-                            Text(Currency.symbol)
-                                .foregroundColor(.secondary)
-                            TextField("No limit", text: $monthlyLimit)
-                                .keyboardType(.decimalPad)
-                                .onChange(of: monthlyLimit) { _, newValue in
-                                    monthlyLimit = AmountInput.sanitize(newValue)
+                                HStack(spacing: 4) {
+                                    Image(systemName: "face.smiling")
+                                        .font(.system(size: 11, weight: .semibold))
+                                    Text("Tap to change")
+                                        .font(Brand.display(13, .medium))
                                 }
+                                .foregroundStyle(Brand.textSecondary)
+                            }
                         }
-                        .padding()
-                        .background(Color(.secondarySystemGroupedBackground))
-                        .cornerRadius(12)
+                        .buttonStyle(.plain)
 
-                        Text("Leave empty for no limit. Groups over their limit are highlighted on the main screen.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal, 4)
+                        VStack(spacing: 18) {
+                            BrandField(label: "Group Name") {
+                                TextField("Group name", text: $name)
+                                    .font(Brand.display(16, .medium))
+                            }
+
+                            BrandField(
+                                label: "Monthly Limit",
+                                footnote: "Leave empty for no limit. Groups over their limit are highlighted on the home screen."
+                            ) {
+                                HStack(alignment: .firstTextBaseline, spacing: 5) {
+                                    Text(Currency.symbol)
+                                        .font(Brand.number(16, .medium))
+                                        .foregroundStyle(Brand.textSecondary)
+                                    TextField("No limit", text: $monthlyLimit)
+                                        .font(Brand.number(16, .semibold))
+                                        .keyboardType(.decimalPad)
+                                        .onChange(of: monthlyLimit) { _, newValue in
+                                            monthlyLimit = AmountInput.sanitize(newValue)
+                                        }
+                                }
+                            }
+                        }
+                        .padding(.horizontal, Brand.Space.gutter)
                     }
-                    .padding(.horizontal)
+                    .padding(.top, 24)
+                    .padding(.bottom, 32)
                 }
-
-                Spacer()
+                .scrollIndicators(.hidden)
             }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle("Edit Group")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("Edit Group")
+                        .font(Brand.display(16, .semibold))
+                        .foregroundStyle(Brand.textPrimary)
+                }
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { dismiss() }
+                        .foregroundStyle(Brand.textSecondary)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Save") { save() }
-                        .fontWeight(.semibold)
+                        .font(Brand.display(15, .semibold))
+                        .foregroundStyle(Brand.accent)
                         .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
@@ -102,6 +94,7 @@ struct EditCategoryView: View {
                 EmojiPickerSheet(selectedEmoji: $selectedEmoji)
             }
         }
+        .tint(Brand.accent)
     }
 
     private func save() {

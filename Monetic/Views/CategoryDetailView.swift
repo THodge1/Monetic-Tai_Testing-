@@ -15,68 +15,39 @@ struct CategoryDetailView: View {
         category.transactions.sorted { $0.date > $1.date }
     }
 
-    private var monthlySpent: Double {
-        category.monthlySpending()
-    }
+    private var monthlySpent: Double { category.monthlySpending() }
+    private var hasLimit: Bool { category.monthlyBudget > 0 }
+    private var isOver: Bool { category.isOverBudget() }
+    private var hue: Color { CategoryPalette.color(for: category.color) }
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // Header
-                HStack(spacing: 16) {
-                    CategoryIcon(icon: category.icon, color: category.color, size: 36, frame: 64)
-                        .cornerRadius(16)
+            ZStack {
+                BrandBackground()
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(category.name)
-                            .font(.title2)
-                            .fontWeight(.bold)
-                        Text("\(category.transactions.count) expense\(category.transactions.count == 1 ? "" : "s")")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                VStack(spacing: 0) {
+                    header
+                        .padding(.horizontal, Brand.Space.gutter)
+                        .padding(.bottom, 14)
+
+                    if sortedTransactions.isEmpty {
+                        emptyState
+                    } else {
+                        transactionList
                     }
-
-                    Spacer()
-
-                    VStack(alignment: .trailing, spacing: 4) {
-                        Text("This Month")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text(monthlySpent, format: .currency(code: Currency.code))
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                    }
-                }
-                .padding()
-                .background(Color(.secondarySystemGroupedBackground))
-
-                // List
-                if sortedTransactions.isEmpty {
-                    ContentUnavailableView(
-                        "No Expenses Yet",
-                        systemImage: "tray",
-                        description: Text("Tap \"Add Expense\" to record your first expense")
-                    )
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    List {
-                        ForEach(sortedTransactions) { transaction in
-                            TransactionRow(transaction: transaction)
-                                .contentShape(Rectangle())
-                                .onTapGesture { selectedTransaction = transaction }
-                                .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
-                        }
-                        .onDelete(perform: deleteTransactions)
-                    }
-                    .listStyle(.plain)
                 }
             }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle(category.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text(category.name)
+                        .font(Brand.display(16, .semibold))
+                        .foregroundStyle(Brand.textPrimary)
+                        .lineLimit(1)
+                }
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Done") { dismiss() }
+                        .foregroundStyle(Brand.accent)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
@@ -89,19 +60,19 @@ struct CategoryDetailView: View {
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")
+                            .foregroundStyle(Brand.textSecondary)
                     }
                 }
             }
             .safeAreaInset(edge: .bottom) {
                 Button(action: { showingAddTransaction = true }) {
-                    Label("Add Expense", systemImage: "plus.circle.fill")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
+                    Label("Add Expense", systemImage: "plus")
                 }
-                .buttonStyle(.borderedProminent)
-                .padding()
-                .background(Color(.systemGroupedBackground))
+                .buttonStyle(GradientButtonStyle())
+                .padding(.horizontal, Brand.Space.gutter)
+                .padding(.top, 8)
+                .padding(.bottom, 8)
+                .background(Brand.background.opacity(0.94).ignoresSafeArea(edges: .bottom))
             }
             .sheet(isPresented: $showingAddTransaction) {
                 AddTransactionView(category: category)
@@ -127,6 +98,101 @@ struct CategoryDetailView: View {
                 Text("This will permanently delete the group and all \(category.transactions.count) expense\(category.transactions.count == 1 ? "" : "s") inside it.")
             }
         }
+        .tint(Brand.accent)
+    }
+
+    // MARK: Header
+
+    private var header: some View {
+        VStack(spacing: 16) {
+            HStack(spacing: 14) {
+                CategoryTile(icon: category.icon, colorKey: category.color, size: 56)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(category.name)
+                        .font(Brand.display(19, .bold))
+                        .foregroundStyle(Brand.textPrimary)
+                        .lineLimit(1)
+                    Text("\(category.transactions.count) expense\(category.transactions.count == 1 ? "" : "s")")
+                        .font(.caption)
+                        .foregroundStyle(Brand.textTertiary)
+                }
+
+                Spacer(minLength: 8)
+
+                VStack(alignment: .trailing, spacing: 3) {
+                    Text("This Month").brandEyebrow()
+                    Text(monthlySpent, format: .currency(code: Currency.code))
+                        .font(Brand.number(20))
+                        .foregroundStyle(isOver ? Brand.danger : Brand.textPrimary)
+                        .minimumScaleFactor(0.6)
+                        .lineLimit(1)
+                }
+            }
+
+            if hasLimit {
+                VStack(spacing: 7) {
+                    BrandProgressBar(
+                        percentage: category.monthlySpendingPercentage(),
+                        tint: isOver ? Brand.danger : hue,
+                        height: 6
+                    )
+
+                    HStack {
+                        Text(isOver ? "Over limit" : "Monthly limit")
+                            .font(.caption)
+                            .foregroundStyle(isOver ? Brand.danger : Brand.textTertiary)
+                        Spacer()
+                        Text(category.monthlyBudget, format: .currency(code: Currency.code))
+                            .font(Brand.number(12, .semibold))
+                            .foregroundStyle(Brand.textSecondary)
+                    }
+                }
+            }
+        }
+        .brandCard()
+    }
+
+    // MARK: List
+
+    private var transactionList: some View {
+        List {
+            ForEach(sortedTransactions) { transaction in
+                TransactionRow(transaction: transaction)
+                    .contentShape(Rectangle())
+                    .onTapGesture { selectedTransaction = transaction }
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(
+                        top: 4, leading: Brand.Space.gutter,
+                        bottom: 4, trailing: Brand.Space.gutter
+                    ))
+            }
+            .onDelete(perform: deleteTransactions)
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .environment(\.defaultMinListRowHeight, 0)
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 10) {
+            Spacer()
+            Image(systemName: "tray")
+                .font(.system(size: 30, weight: .light))
+                .foregroundStyle(Brand.textTertiary)
+            Text("No expenses yet")
+                .font(Brand.display(16, .semibold))
+                .foregroundStyle(Brand.textPrimary)
+            Text("Everything you log in this group shows up here.")
+                .font(.subheadline)
+                .foregroundStyle(Brand.textSecondary)
+                .multilineTextAlignment(.center)
+            Spacer()
+            Spacer()
+        }
+        .padding(.horizontal, 36)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func deleteTransactions(at offsets: IndexSet) {
@@ -143,31 +209,48 @@ struct TransactionRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 7) {
                     Text(transaction.notes.isEmpty ? "Expense" : transaction.notes)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+                        .font(Brand.display(15, .medium))
+                        .foregroundStyle(Brand.textPrimary)
+                        .lineLimit(1)
+
                     if transaction.isRecurring {
                         Text(transaction.recurringFrequency.capitalized)
-                            .font(.caption2)
-                            .fontWeight(.semibold)
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .textCase(.uppercase)
+                            .tracking(0.4)
                             .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.accentColor.opacity(0.15))
-                            .foregroundColor(.accentColor)
-                            .cornerRadius(4)
+                            .padding(.vertical, 3)
+                            .background(
+                                RoundedRectangle(cornerRadius: Brand.Radius.chip, style: .continuous)
+                                    .fill(Brand.accent.opacity(0.16))
+                            )
+                            .foregroundStyle(Brand.accent)
                     }
                 }
+
                 Text(transaction.date, style: .date)
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(Brand.textTertiary)
             }
-            Spacer()
+
+            Spacer(minLength: 8)
+
             Text(transaction.amount, format: .currency(code: Currency.code))
-                .font(.subheadline)
-                .fontWeight(.semibold)
+                .font(Brand.number(16, .semibold))
+                .foregroundStyle(Brand.textPrimary)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 14)
+        .background(
+            RoundedRectangle(cornerRadius: Brand.Radius.row, style: .continuous)
+                .fill(Brand.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Brand.Radius.row, style: .continuous)
+                .strokeBorder(Brand.hairline, lineWidth: 1)
+        )
     }
 }
