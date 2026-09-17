@@ -66,6 +66,27 @@ When "Repeat Monthly Budget" is on in Settings, Monetic no longer silently carri
 
 With the toggle off, the app still prompts for a new budget each month, offering "Keep Last Month's Budget" as a fallback.
 
+## Marketing Website
+
+A companion landing page showcases the app ahead of launch. It's a single self-contained HTML page (no build step, no framework) currently published as a private Claude artifact, pending a real domain.
+
+### What's on it
+
+- **Hero** — headline, pitch, and the live dashboard screenshot in a realistic device frame with an ambient blue/violet glow behind it
+- **Feature walkthrough** — four alternating sections pairing real app screenshots (not mockups) with copy: spending groups, logging an expense, the spending-overview ring chart, and appearance/rollover settings
+- **How it works** — a three-step onboarding preview (set a budget → pick starter groups → log as you go), each with a compact screenshot
+- **Early access** — a waitlist form that opens the visitor's email client addressed to me, since there's no backend to store submissions yet
+- **Trust strip** — a quick native-tech callout (SwiftUI, SwiftData, Swift Charts, iOS 17+)
+
+### Brand consistency
+
+Colors weren't picked separately from the app — they were sampled directly from the real UI and the logo: the electric blue → violet → magenta gradient, the near-black surfaces, and the coral/gold chart accents. Typography is Fraunces (headlines) + Sora (body) + JetBrains Mono (numbers), which the app's design system doesn't use, since the site can lean more editorial than the in-app UI.
+
+### Status
+
+Pre-launch. No App Store or TestFlight link yet — the CTA collects interest via email instead. Next step is moving it off the Claude artifact link onto a real domain (static host + DNS), at which point this section should get an update with the live URL.
+
+
 ## Running The Project
 
 1. Open `Monetic.xcodeproj` in Xcode.
