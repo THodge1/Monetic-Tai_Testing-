@@ -15,6 +15,7 @@ struct ContentView: View {
     @AppStorage("monthlyBudget") private var monthlyBudget: Double = 0
     @AppStorage("budgetSetMonth") private var budgetSetMonth: String = ""
     @AppStorage("repeatMonthlyBudget") private var repeatMonthlyBudget: Bool = false
+    @AppStorage("lastMonthlyBudget") private var lastMonthlyBudget: Double = 0
 
     init() {}
 
@@ -137,7 +138,7 @@ struct ContentView: View {
                 SetBudgetView(
                     monthlyBudget: $monthlyBudget,
                     budgetSetMonth: $budgetSetMonth,
-                    isNewMonthPrompt: isNewMonthPrompt
+                    isNewMonthPrompt: $isNewMonthPrompt
                 )
                 // A new-month prompt has its own explicit exits, so it can't be
                 // swiped away without recording the month — that was the nag loop.
@@ -211,12 +212,11 @@ struct ContentView: View {
         let currentMonth = MonthKey.key()
         guard budgetSetMonth != currentMonth else { return }
 
-        if repeatMonthlyBudget && monthlyBudget > 0 {
-            budgetSetMonth = currentMonth
-        } else {
-            isNewMonthPrompt = true
-            showingSetBudget = true
+        if monthlyBudget > 0 {
+            lastMonthlyBudget = monthlyBudget
         }
+        isNewMonthPrompt = true
+        showingSetBudget = true
     }
 }
 

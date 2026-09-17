@@ -4,7 +4,7 @@ struct SetBudgetView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var monthlyBudget: Double
     @Binding var budgetSetMonth: String
-    let isNewMonthPrompt: Bool
+    @Binding var isNewMonthPrompt: Bool
 
     @AppStorage("repeatMonthlyBudget") private var repeatMonthlyBudget: Bool = false
     @State private var input: String = ""
@@ -57,18 +57,34 @@ struct SetBudgetView: View {
                     Spacer()
 
                     VStack(spacing: 12) {
-                        Button("Save Budget", action: save)
-                            .buttonStyle(GradientButtonStyle())
-                            .disabled(parsedAmount <= 0)
-
-                        // The new-month prompt has no Cancel, so it always needs one
-                        // other way out — otherwise a user with no previous budget
-                        // is stuck here on first launch.
-                        if isNewMonthPrompt {
+                        // When the user repeats their budget month to month, lead
+                        // with the roll-over action instead of an empty entry field —
+                        // it's the choice they've already told us they want.
+                        if isNewMonthPrompt && repeatMonthlyBudget && monthlyBudget > 0 {
                             Button(action: keepSame) {
-                                Text(monthlyBudget > 0 ? "Keep Last Month's Budget" : "Skip for Now")
+                                Text("Roll Over Last Month's Budget (")
+                                    + Text(monthlyBudget, format: .currency(code: Currency.code))
+                                    + Text(")")
                             }
-                            .buttonStyle(SoftButtonStyle())
+                            .buttonStyle(GradientButtonStyle())
+
+                            Button("Set a Different Amount", action: save)
+                                .buttonStyle(SoftButtonStyle())
+                                .disabled(parsedAmount <= 0)
+                        } else {
+                            Button("Save Budget", action: save)
+                                .buttonStyle(GradientButtonStyle())
+                                .disabled(parsedAmount <= 0)
+
+                            // The new-month prompt has no Cancel, so it always needs one
+                            // other way out — otherwise a user with no previous budget
+                            // is stuck here on first launch.
+                            if isNewMonthPrompt {
+                                Button(action: keepSame) {
+                                    Text(monthlyBudget > 0 ? "Keep Last Month's Budget" : "Skip for Now")
+                                }
+                                .buttonStyle(SoftButtonStyle())
+                            }
                         }
                     }
                     .padding(.horizontal, Brand.Space.gutter)

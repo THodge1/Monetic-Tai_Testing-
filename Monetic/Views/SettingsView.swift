@@ -6,6 +6,7 @@ struct SettingsView: View {
     @AppStorage("repeatMonthlyBudget") private var repeatMonthlyBudget: Bool = false
     @AppStorage("monthlyBudget") private var monthlyBudget: Double = 0
     @AppStorage("budgetSetMonth") private var budgetSetMonth: String = ""
+    @AppStorage("lastMonthlyBudget") private var lastMonthlyBudget: Double = 0
 
     var body: some View {
         NavigationStack {
@@ -79,13 +80,33 @@ struct SettingsView: View {
             .tint(Brand.accent)
 
             Text(repeatMonthlyBudget
-                 ? "Your budget rolls over automatically on the 1st of each month."
+                 ? "You'll be offered the option to roll over last month's budget at the start of each month."
                  : "You'll be prompted to set a new budget at the start of each month.")
                 .font(.caption)
                 .foregroundStyle(Brand.textTertiary)
+
+            if repeatMonthlyBudget && lastMonthlyBudget > 0 && lastMonthlyBudget != monthlyBudget {
+                Rectangle().fill(Brand.hairline).frame(height: 1)
+
+                Button(action: rollOverLastMonth) {
+                    HStack {
+                        Text("Roll Over Last Month's Budget")
+                            .font(Brand.display(15, .medium))
+                            .foregroundStyle(Brand.accent)
+                        Spacer()
+                        Text(lastMonthlyBudget, format: .currency(code: Currency.code))
+                            .font(Brand.number(15, .semibold))
+                            .foregroundStyle(Brand.accent)
+                    }
+                }
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .brandCard()
+    }
+
+    private func rollOverLastMonth() {
+        monthlyBudget = lastMonthlyBudget
     }
 
     // MARK: This month

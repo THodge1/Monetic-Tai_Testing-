@@ -55,7 +55,16 @@ Dark is the mode the brand is tuned for and the default for new installs. Light 
 - Recurring monthly and yearly expense support
 - Category detail views for reviewing transactions
 - Onboarding flow with starter categories
-- Settings for appearance and monthly budget rollover
+- Settings for appearance and monthly budget rollover, including a one-tap option to roll last month's budget into the current month
+
+### Budget Rollover
+
+When "Repeat Monthly Budget" is on in Settings, Monetic no longer silently carries the old budget forward. Instead:
+
+- At the start of a new month, the budget prompt leads with a **"Roll Over Last Month's Budget ($X)"** button so the amount carrying forward is explicit, with "Set a Different Amount" as a secondary option.
+- A matching **"Roll Over Last Month's Budget"** row appears in Settings any time the current budget differs from the last one recorded, so the amount can be reapplied later even outside the new-month prompt.
+
+With the toggle off, the app still prompts for a new budget each month, offering "Keep Last Month's Budget" as a fallback.
 
 ## Running The Project
 
