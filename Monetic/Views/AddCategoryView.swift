@@ -11,62 +11,47 @@ struct AddCategoryView: View {
     @State private var showingEmojiPicker = false
     @FocusState private var nameFocused: Bool
 
-    private let autoColors = ["blue", "orange", "green", "purple", "pink", "red", "teal", "indigo"]
-
-    private var nextAutoColor: String {
-        autoColors[existingCategories.count % autoColors.count]
+    /// Groups cycle through the brand palette in creation order, so two groups
+    /// made back to back never land on neighbouring hues.
+    private var nextColorKey: String {
+        CategoryPalette.key(forIndex: existingCategories.count)
     }
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // Emoji preview + name entry
-                VStack(spacing: 24) {
-                    // Selected emoji preview
-                    Button(action: { showingEmojiPicker = true }) {
-                        VStack(spacing: 8) {
-                            Text(selectedEmoji)
-                                .font(.system(size: 72))
-                                .frame(width: 120, height: 120)
-                                .background(Color(.secondarySystemGroupedBackground))
-                                .cornerRadius(28)
+            ZStack {
+                BrandBackground()
 
-                            Text("Tap to change emoji")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                ScrollView {
+                    VStack(spacing: 26) {
+                        emojiPreview
+
+                        BrandField(label: "Group Name") {
+                            TextField("e.g. Groceries, Rent, Fun Money", text: $name)
+                                .font(Brand.display(16, .medium))
+                                .focused($nameFocused)
                         }
+                        .padding(.horizontal, Brand.Space.gutter)
                     }
-                    .padding(.top, 32)
-
-                    // Name field
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Group Name")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .textCase(.uppercase)
-                            .padding(.horizontal, 4)
-
-                        TextField("e.g. Groceries, Rent, Fun Money", text: $name)
-                            .focused($nameFocused)
-                            .padding()
-                            .background(Color(.secondarySystemGroupedBackground))
-                            .cornerRadius(12)
-                    }
-                    .padding(.horizontal)
+                    .padding(.top, 26)
                 }
-
-                Spacer()
+                .scrollIndicators(.hidden)
             }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle("New Group")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("New Group")
+                        .font(Brand.display(16, .semibold))
+                        .foregroundStyle(Brand.textPrimary)
+                }
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { dismiss() }
+                        .foregroundStyle(Brand.textSecondary)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Add") { save() }
-                        .fontWeight(.semibold)
+                        .font(Brand.display(15, .semibold))
+                        .foregroundStyle(Brand.accent)
                         .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
@@ -75,12 +60,32 @@ struct AddCategoryView: View {
             }
             .onAppear { nameFocused = true }
         }
+        .tint(Brand.accent)
+    }
+
+    /// Previewed in the hue the group will actually be assigned, so the choice
+    /// isn't a surprise once it lands on the home screen.
+    private var emojiPreview: some View {
+        Button(action: { showingEmojiPicker = true }) {
+            VStack(spacing: 10) {
+                CategoryTile(icon: selectedEmoji, colorKey: nextColorKey, size: 108)
+
+                HStack(spacing: 4) {
+                    Image(systemName: "face.smiling")
+                        .font(.system(size: 11, weight: .semibold))
+                    Text("Tap to change")
+                        .font(Brand.display(13, .medium))
+                }
+                .foregroundStyle(Brand.textSecondary)
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     private func save() {
         let category = BudgetCategory(
             name: name.trimmingCharacters(in: .whitespaces),
-            color: nextAutoColor,
+            color: nextColorKey,
             icon: selectedEmoji,
             budgetLimit: 0,
             monthlyBudget: 0,
@@ -111,64 +116,82 @@ struct EmojiPickerSheet: View {
         ("Other",         ["🎁","⭐","❤️","🎓","🏆","🌟","🙏","✨","🔔","🌈","🦋"]),
     ]
 
-    let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 7)
+    let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 6)
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // Preview of current selection
-                    HStack {
-                        Spacer()
-                        Text(selectedEmoji)
-                            .font(.system(size: 56))
-                            .frame(width: 90, height: 90)
-                            .background(Color(.secondarySystemGroupedBackground))
-                            .cornerRadius(20)
-                        Spacer()
-                    }
-                    .padding(.top, 8)
+            ZStack {
+                BrandBackground()
 
-                    // Emoji grid by section
-                    ForEach(sections, id: \.title) { section in
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(section.title)
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.secondary)
-                                .padding(.horizontal)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 22) {
+                        ForEach(sections, id: \.title) { section in
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text(section.title)
+                                    .brandEyebrow()
+                                    .padding(.horizontal, Brand.Space.gutter)
 
-                            LazyVGrid(columns: columns, spacing: 8) {
-                                ForEach(section.emojis, id: \.self) { emoji in
-                                    Button(action: {
-                                        selectedEmoji = emoji
-                                        dismiss()
-                                    }) {
-                                        Text(emoji)
-                                            .font(.system(size: 30))
-                                            .frame(width: 44, height: 44)
-                                            .background(
-                                                selectedEmoji == emoji
-                                                    ? Color.accentColor.opacity(0.25)
-                                                    : Color(.secondarySystemGroupedBackground)
-                                            )
-                                            .cornerRadius(10)
+                                LazyVGrid(columns: columns, spacing: 8) {
+                                    ForEach(section.emojis, id: \.self) { emoji in
+                                        emojiButton(emoji)
                                     }
                                 }
+                                .padding(.horizontal, Brand.Space.gutter)
                             }
-                            .padding(.horizontal)
                         }
                     }
+                    .padding(.vertical, 18)
                 }
-                .padding(.bottom, 24)
+                .scrollIndicators(.hidden)
             }
-            .navigationTitle("Choose Emoji")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("Choose Emoji")
+                        .font(Brand.display(16, .semibold))
+                        .foregroundStyle(Brand.textPrimary)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Cancel") { dismiss() }
+                        .foregroundStyle(Brand.textSecondary)
                 }
             }
+        }
+        .tint(Brand.accent)
+    }
+
+    private func emojiButton(_ emoji: String) -> some View {
+        let isSelected = selectedEmoji == emoji
+
+        return Button {
+            selectedEmoji = emoji
+            dismiss()
+        } label: {
+            Text(emoji)
+                .font(.system(size: 28))
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
+                .background(
+                    EmojiCellBackground(isSelected: isSelected)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// Selection chrome for an emoji cell.
+private struct EmojiCellBackground: View {
+    let isSelected: Bool
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Brand.surface)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(
+                    isSelected ? AnyShapeStyle(Brand.gradientDiagonal) : AnyShapeStyle(Brand.hairline),
+                    lineWidth: isSelected ? 2 : 1
+                )
         }
     }
 }

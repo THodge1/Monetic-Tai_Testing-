@@ -3,7 +3,9 @@ import SwiftData
 
 @main
 struct MoneticApp: App {
-    @AppStorage("appAppearance") var appearance: String = "system"
+    // Dark is the mode the brand is designed for, so it's the default for
+    // anyone who hasn't explicitly chosen otherwise.
+    @AppStorage("appAppearance") var appearance: String = "dark"
 
     private let store: Result<ModelContainer, Error>
 
@@ -25,10 +27,12 @@ struct MoneticApp: App {
             case .success(let container):
                 ContentView()
                     .preferredColorScheme(preferredScheme)
+                    .tint(Brand.accent)
                     .modelContainer(container)
             case .failure(let error):
                 StoreUnavailableView(error: error)
                     .preferredColorScheme(preferredScheme)
+                    .tint(Brand.accent)
             }
         }
     }
@@ -83,11 +87,25 @@ struct StoreUnavailableView: View {
     let error: Error
 
     var body: some View {
-        ContentUnavailableView {
-            Label("Can't Open Your Budget", systemImage: "exclamationmark.triangle")
-        } description: {
-            Text("Monetic couldn't load its data. Your information hasn't been deleted. Try restarting the app — if this keeps happening, restarting your device or reinstalling from a backup usually resolves it.")
+        ZStack {
+            BrandBackground()
+
+            VStack(spacing: 14) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 34))
+                    .foregroundStyle(Brand.warning)
+
+                Text("Can't Open Your Budget")
+                    .font(Brand.display(20, .bold))
+                    .foregroundStyle(Brand.textPrimary)
+
+                Text("Monetic couldn't load its data. Your information hasn't been deleted. Try restarting the app — if this keeps happening, restarting your device or reinstalling from a backup usually resolves it.")
+                    .font(.subheadline)
+                    .foregroundStyle(Brand.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+            .brandCard(padding: 24)
+            .padding(Brand.Space.gutter)
         }
-        .padding()
     }
 }

@@ -12,6 +12,7 @@ struct EditTransactionView: View {
     @State private var isRecurring: Bool = false
     @State private var recurringFrequency: String = "monthly"
     @State private var showingDeleteConfirm = false
+    @FocusState private var amountFocused: Bool
 
     init(transaction: Transaction) {
         self.transaction = transaction
@@ -28,69 +29,57 @@ struct EditTransactionView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Amount") {
-                    HStack(alignment: .firstTextBaseline, spacing: 4) {
-                        Text(Currency.symbol)
-                            .font(.title)
-                            .foregroundColor(.secondary)
-                        TextField("0.00", text: $amount)
-                            .font(.title)
-                            .keyboardType(.decimalPad)
-                            .onChange(of: amount) { _, newValue in
-                                amount = AmountInput.sanitize(newValue)
-                            }
-                    }
-                    .padding(.vertical, 4)
-                }
+            ZStack {
+                BrandBackground()
 
-                Section("Date") {
-                    DatePicker("", selection: $date, displayedComponents: .date)
-                        .labelsHidden()
-                }
+                ScrollView {
+                    VStack(spacing: Brand.Space.stack) {
+                        AmountEntryCard(amount: $amount, focus: $amountFocused)
 
-                Section("Notes (optional)") {
-                    TextField("What was this for?", text: $notes, axis: .vertical)
-                        .lineLimit(3)
-                }
-
-                Section("Repeat") {
-                    Toggle("Recurring Expense", isOn: $isRecurring)
-                    if isRecurring {
-                        Picker("Frequency", selection: $recurringFrequency) {
-                            Text("Monthly").tag("monthly")
-                            Text("Yearly").tag("yearly")
+                        if let cat = transaction.category {
+                            groupCard(cat)
                         }
-                        .pickerStyle(.segmented)
-                    }
-                }
 
-                if let cat = transaction.category {
-                    Section("Group") {
-                        HStack(spacing: 12) {
-                            CategoryIcon(icon: cat.icon, color: cat.color, size: 20, frame: 36)
-                                .cornerRadius(8)
-                            Text(cat.name)
+                        detailsCard
+                        repeatCard
+
+                        Button(role: .destructive) {
+                            showingDeleteConfirm = true
+                        } label: {
+                            Label("Delete Expense", systemImage: "trash")
+                                .font(Brand.display(15, .semibold))
+                                .foregroundStyle(Brand.danger)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(
+                                    RoundedRectangle(cornerRadius: Brand.Radius.control, style: .continuous)
+                                        .fill(Brand.danger.opacity(0.12))
+                                )
                         }
+                        .buttonStyle(.plain)
+                        .padding(.top, 4)
                     }
+                    .padding(.horizontal, Brand.Space.gutter)
+                    .padding(.top, 10)
+                    .padding(.bottom, 32)
                 }
-
-                Section {
-                    Button("Delete Expense", role: .destructive) {
-                        showingDeleteConfirm = true
-                    }
-                    .frame(maxWidth: .infinity)
-                }
+                .scrollIndicators(.hidden)
             }
-            .navigationTitle("Edit Expense")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("Edit Expense")
+                        .font(Brand.display(16, .semibold))
+                        .foregroundStyle(Brand.textPrimary)
+                }
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { dismiss() }
+                        .foregroundStyle(Brand.textSecondary)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Save") { save() }
-                        .fontWeight(.semibold)
+                        .font(Brand.display(15, .semibold))
+                        .foregroundStyle(Brand.accent)
                         .disabled(!isValid)
                 }
             }
@@ -99,6 +88,65 @@ struct EditTransactionView: View {
                 Button("Cancel", role: .cancel) {}
             }
         }
+        .tint(Brand.accent)
+    }
+
+    private func groupCard(_ cat: BudgetCategory) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Group").brandEyebrow()
+            HStack(spacing: 11) {
+                CategoryTile(icon: cat.icon, colorKey: cat.color, size: 38)
+                Text(cat.name)
+                    .font(Brand.display(15, .medium))
+                    .foregroundStyle(Brand.textPrimary)
+                Spacer()
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .brandCard()
+    }
+
+    private var detailsCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Date").brandEyebrow()
+                Spacer()
+                DatePicker("", selection: $date, displayedComponents: .date)
+                    .labelsHidden()
+                    .tint(Brand.accent)
+            }
+
+            Rectangle().fill(Brand.hairline).frame(height: 1)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Note").brandEyebrow()
+                TextField("What was this for?", text: $notes, axis: .vertical)
+                    .font(.subheadline)
+                    .lineLimit(1...3)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .brandCard()
+    }
+
+    private var repeatCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Toggle(isOn: $isRecurring.animation(.easeOut(duration: 0.2))) {
+                Text("Recurring Expense")
+                    .font(Brand.display(15, .medium))
+                    .foregroundStyle(Brand.textPrimary)
+            }
+            .tint(Brand.accent)
+
+            if isRecurring {
+                BrandSegmented(
+                    options: [("monthly", "Monthly"), ("yearly", "Yearly")],
+                    selection: $recurringFrequency
+                )
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .brandCard()
     }
 
     private func save() {

@@ -32,6 +32,22 @@ Monetic is built with Apple's modern native iOS tools:
 
 The project currently targets `iOS 17.0+`.
 
+## Design System
+
+The interface is built on a single design system rather than SwiftUI defaults. Everything visual is defined in `Monetic/DesignSystem/`:
+
+- `Brand.swift` — colors, surfaces, type scale, radii, and spacing tokens. Every surface is declared once and resolves per interface style.
+- `CategoryPalette.swift` — the nine hues a spending group can be tinted with, plus the mapping that resolves color names stored by earlier versions.
+- `BrandComponents.swift` — shared cards, buttons, the budget ring, progress bars, the segmented control, and the amount field.
+
+The palette is taken from the app's logo: an electric blue running through violet into magenta, on near-black. The full gradient is reserved for a small number of signature moments — the budget ring, primary buttons, the wordmark, and selection states — so it reads as a brand mark rather than decoration.
+
+Dark is the mode the brand is tuned for and the default for new installs. Light mode is fully supported and can be chosen in Settings.
+
+### Adding the logo asset
+
+`BrandLogoMark` renders `BrandLogo` from the asset catalog when it is present and falls back to a gradient tile when it is not. To use the real logo, add a 1x/2x/3x PNG (or a single vector PDF) to `Monetic/Assets.xcassets/BrandLogo.imageset/`. The app icon is separate — drop a 1024×1024 PNG into `AppIcon.appiconset/`.
+
 ## Main Features
 
 - Monthly budget summary with remaining balance and progress tracking
@@ -39,7 +55,16 @@ The project currently targets `iOS 17.0+`.
 - Recurring monthly and yearly expense support
 - Category detail views for reviewing transactions
 - Onboarding flow with starter categories
-- Settings for appearance and monthly budget rollover
+- Settings for appearance and monthly budget rollover, including a one-tap option to roll last month's budget into the current month
+
+### Budget Rollover
+
+When "Repeat Monthly Budget" is on in Settings, Monetic no longer silently carries the old budget forward. Instead:
+
+- At the start of a new month, the budget prompt leads with a **"Roll Over Last Month's Budget ($X)"** button so the amount carrying forward is explicit, with "Set a Different Amount" as a secondary option.
+- A matching **"Roll Over Last Month's Budget"** row appears in Settings any time the current budget differs from the last one recorded, so the amount can be reapplied later even outside the new-month prompt.
+
+With the toggle off, the app still prompts for a new budget each month, offering "Keep Last Month's Budget" as a fallback.
 
 ## Running The Project
 
