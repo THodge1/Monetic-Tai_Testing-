@@ -1,5 +1,9 @@
 # Monetic
 
+<p align="center">
+  <img src="Marketing/Brand/monetic-logo.png" alt="Monetic logo" width="140">
+</p>
+
 Monetic is a simple iOS budgeting app for tracking monthly spending in a way that feels lightweight and approachable. Instead of trying to be a full finance platform, the app focuses on the basics: setting a monthly budget, organizing expenses into groups, logging transactions, and seeing how your spending is trending throughout the month.
 
 ## What The App Does
@@ -44,10 +48,6 @@ The palette is taken from the app's logo: an electric blue running through viole
 
 Dark is the mode the brand is tuned for and the default for new installs. Light mode is fully supported and can be chosen in Settings.
 
-### Adding the logo asset
-
-`BrandLogoMark` renders `BrandLogo` from the asset catalog when it is present and falls back to a gradient tile when it is not. To use the real logo, add a 1x/2x/3x PNG (or a single vector PDF) to `Monetic/Assets.xcassets/BrandLogo.imageset/`. The app icon is separate — drop a 1024×1024 PNG into `AppIcon.appiconset/`.
-
 ## Main Features
 
 - Monthly budget summary with remaining balance and progress tracking
@@ -65,6 +65,45 @@ When "Repeat Monthly Budget" is on in Settings, Monetic no longer silently carri
 - A matching **"Roll Over Last Month's Budget"** row appears in Settings any time the current budget differs from the last one recorded, so the amount can be reapplied later even outside the new-month prompt.
 
 With the toggle off, the app still prompts for a new budget each month, offering "Keep Last Month's Budget" as a fallback.
+
+## Screenshots
+
+<table>
+<tr>
+<td width="25%"><img src="Marketing/AppPreviews/03-dashboard.png" alt="Dashboard with remaining budget ring"></td>
+<td width="25%"><img src="Marketing/AppPreviews/06-groups-full-list.png" alt="Spending groups list"></td>
+<td width="25%"><img src="Marketing/AppPreviews/05-spending-overview.png" alt="Spending overview chart"></td>
+<td width="25%"><img src="Marketing/AppPreviews/07-settings.png" alt="Settings screen"></td>
+</tr>
+<tr>
+<td align="center"><sub>Dashboard</sub></td>
+<td align="center"><sub>Spending groups</sub></td>
+<td align="center"><sub>Spending overview</sub></td>
+<td align="center"><sub>Settings</sub></td>
+</tr>
+</table>
+
+
+## Marketing Website
+
+A companion landing page showcases the app ahead of launch. It's a single self-contained HTML page (no build step, no framework) currently published as a private Claude artifact, pending a real domain.
+
+### What's on it
+
+- **Hero** — headline, pitch, and the live dashboard screenshot in a realistic device frame with an ambient blue/violet glow behind it
+- **Feature walkthrough** — four alternating sections pairing real app screenshots (not mockups) with copy: spending groups, logging an expense, the spending-overview ring chart, and appearance/rollover settings
+- **How it works** — a three-step onboarding preview (set a budget → pick starter groups → log as you go), each with a compact screenshot
+- **Early access** — a waitlist form that opens the visitor's email client addressed to me, since there's no backend to store submissions yet
+- **Trust strip** — a quick native-tech callout (SwiftUI, SwiftData, Swift Charts, iOS 17+)
+
+### Brand consistency
+
+Colors weren't picked separately from the app — they were sampled directly from the real UI and the logo: the electric blue → violet → magenta gradient, the near-black surfaces, and the coral/gold chart accents. Typography is Fraunces (headlines) + Sora (body) + JetBrains Mono (numbers), which the app's design system doesn't use, since the site can lean more editorial than the in-app UI.
+
+### Status
+
+Pre-launch. No App Store or TestFlight link yet — the CTA collects interest via email instead. Next step is moving it off the Claude artifact link onto a real domain (static host + DNS), at which point this section should get an update with the live URL.
+
 
 ## Running The Project
 
